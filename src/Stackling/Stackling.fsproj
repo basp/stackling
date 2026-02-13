@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="Runtime.fs" />
     <Compile Include="Builtins.fs" />
+    <Compile Include="Diagnostics.fs" />
     <Compile Include="Interpreter.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
