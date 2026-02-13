@@ -111,6 +111,10 @@ let ``trace accumulation on success`` () =
     | Ok a, Ok b ->
         let va = Diagnostics.initRuntimeStateView a
         let vb = Diagnostics.initRuntimeStateView b
+        // Make sure we have two traces (one for `1` and one for `dup`).        
+        Assert.Equal(2, va.TraceSummary.Length)
+        // Make sure that executing via `step` and `runUntilHalt` gives
+        // the same result.       
         Assert.Equal(va, vb)
     | _ ->
         Assert.Fail("Runtimes should be identical")
