@@ -227,7 +227,7 @@ let ``swap stack discipline invariants`` () =
     let test1 (err, traceEntry, rt) =
         Assert.Equal(StackUnderflow, err)
         Assert.Equal(Symbol "swap", traceEntry.Instruction)
-        Assert.Equal([Int 1], rt.Stack)
+        Assert.Equal<JoyValue list>([Int 1], rt.Stack)
         
     mkRuntime p0
     |> runUntilHalt
