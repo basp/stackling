@@ -34,10 +34,10 @@ let ``dup should duplicate value on top of stack`` () =
     let rt1 = rt0 |> step |> Result.bind step
     expectOk rt1 (fun rt ->
         match rt.Stack with
-        | x :: y :: _ ->
-            Assert.Equal(Int 1, x)
-            Assert.Equal(Int 1, y)
-        | _ -> Assert.Fail("Stack is not of length 2"))
+        | _ :: _ :: _ ->
+            Assert.StrictEqual([Int 1; Int 1], rt.Stack)
+        | _ ->
+            Assert.Fail("Stack is not of length 2"))
       
 [<Fact>]
 let ``literal only program`` () =
@@ -45,11 +45,10 @@ let ``literal only program`` () =
     let rt0 = { defaultRuntime with Queue = p }
     expectOk (runUntilHalt rt0) (fun rt ->
         match rt.Stack with
-        | x :: y :: z :: _ ->
-            Assert.Equal(Int 3, x)
-            Assert.Equal(Int 2, y)
-            Assert.Equal(Int 1, z)
-        | _ -> Assert.Fail("Stack is not of length 3"))
+        | _ :: _ ::_z :: _ ->
+            Assert.StrictEqual([Int 3; Int 2; Int 1], rt.Stack)
+        | _ ->
+            Assert.Fail("Stack is not of length 3"))
 
 [<Fact>]
 let ``builtin only program`` () =
@@ -57,11 +56,10 @@ let ``builtin only program`` () =
     let rt0 = { defaultRuntime with Queue = p }
     expectOk (runUntilHalt rt0) (fun rt ->
         match rt.Stack with
-        | x :: y :: z :: _ ->
-            Assert.Equal(Int 1, x)
-            Assert.Equal(Int 1, y)
-            Assert.Equal(Int 1, z)
-        | _ -> Assert.Fail("Stack is not of length 3"))
+        | _ :: _ :: _ :: _ ->
+            Assert.StrictEqual([Int 1; Int 1; Int 1], rt.Stack)
+        | _ ->
+            Assert.Fail("Stack is not of length 3"))
     
 [<Fact>]
 let ``user-defined word expansion`` () =
@@ -70,11 +68,10 @@ let ``user-defined word expansion`` () =
     let rt0 = { defaultRuntime with Env = env; Queue = [Symbol "foo"] }
     expectOk (runUntilHalt rt0) (fun rt ->
          match rt.Stack with
-         | x :: y :: z :: _ ->
-             Assert.Equal(Int 2, x)
-             Assert.Equal(Int 2, y)
-             Assert.Equal(Int 1, z)
-         | _ -> Assert.Fail("Stack is not of length 3"))
+         | _ :: _ :: _ :: _ ->
+             Assert.StrictEqual([Int 2; Int 2; Int 1], rt.Stack)
+         | _ ->
+             Assert.Fail("Stack is not of length 3"))
     
 [<Fact>]
 let ``error propagation`` () =
