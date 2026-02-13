@@ -102,14 +102,15 @@ let ``halt on empty queue`` () =
 [<Fact>]
 let ``trace accumulation on success`` () =
     let p = [Int 1; Symbol "dup"]
-    let rtA = { defaultRuntime with Queue = p }
-    let rtB = { defaultRuntime with Queue = p }
-    let rtA' = rtA |> step |> Result.bind step
-    let rtB' = runUntilHalt rtB
-    match rtA', rtB' with
-    | Ok rtA, Ok rtB ->
-        let va = Diagnostics.initRuntimeStateView rtA
-        let vb = Diagnostics.initRuntimeStateView rtB
+    let rt0 = { defaultRuntime with Queue = p }
+    // Execute using `step` as a control value.
+    let rtA = rt0 |> step |> Result.bind step
+    // Execute using runUntilHalt and compare with control value.
+    let rtB = rt0 |> runUntilHalt
+    match rtA, rtB with
+    | Ok a, Ok b ->
+        let va = Diagnostics.initRuntimeStateView a
+        let vb = Diagnostics.initRuntimeStateView b
         Assert.Equal(va, vb)
     | _ ->
         Assert.Fail("Runtimes should be identical")
