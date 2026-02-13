@@ -39,7 +39,7 @@ let ``dup should duplicate value on top of stack`` () =
     let test rt =
         match rt.Stack with
         | _ :: _ :: _ ->
-            Assert.StrictEqual([Int 1; Int 1], rt.Stack)
+            Assert.Equal<JoyValue list>([Int 1; Int 1], rt.Stack)
         | _ ->
             Assert.Fail("Stack is not of length 2")        
     // Execute using `step` as a sanity check (since most
@@ -54,7 +54,7 @@ let ``literal only program`` () =
     let test rt =
         match rt.Stack with
         | _ :: _ ::_z :: _ ->
-            Assert.StrictEqual([Int 3; Int 2; Int 1], rt.Stack)
+            Assert.Equal<JoyValue list>([Int 3; Int 2; Int 1], rt.Stack)
         | _ ->
             Assert.Fail("Stack is not of length 3")
     test |> expectOk (runUntilHalt rt0)
@@ -66,7 +66,7 @@ let ``builtin only program`` () =
     let test rt =
         match rt.Stack with
         | _ :: _ :: _ :: _ ->
-            Assert.StrictEqual([Int 1; Int 1; Int 1], rt.Stack)
+            Assert.Equal<JoyValue list>([Int 1; Int 1; Int 1], rt.Stack)
         | _ ->
             Assert.Fail("Stack is not of length 3")        
     test |> expectOk (runUntilHalt rt0)
@@ -79,7 +79,7 @@ let ``user-defined word expansion`` () =
     let test rt = 
          match rt.Stack with
          | _ :: _ :: _ :: _ ->
-             Assert.StrictEqual([Int 2; Int 2; Int 1], rt.Stack)
+             Assert.Equal<JoyValue list>([Int 2; Int 2; Int 1], rt.Stack)
          | _ ->
              Assert.Fail("Stack is not of length 3")
     test |> expectOk (runUntilHalt rt0)
@@ -141,7 +141,7 @@ let ``trace ordering and accumulation`` () =
         let instructions = rt.Trace |> List.map (fun t -> t.Instruction)
         // Trace is stored in reverse order (last step first).
         let expected = [Symbol "dup"; Int 2; Int 1]
-        Assert.StrictEqual(expected, instructions)        
+        Assert.Equal<JoyValue list>(expected, instructions)        
     expectOk (runUntilHalt rt0) test
     
 [<Fact>]
@@ -152,19 +152,19 @@ let ``trace entry correctness for builtins`` () =
     let rt1 = rt0 |> step
     let test1 rt =
         Assert.Equal(Int 1, rt.Trace.Head.Instruction)
-        Assert.StrictEqual([], rt.Trace.Head.StackBefore)
-        Assert.StrictEqual([Int 1], rt.Trace.Head.StackAfter)
-        Assert.StrictEqual([Int 1; Symbol "dup"], rt.Trace.Head.QueueBefore)
-        Assert.StrictEqual([Symbol "dup"], rt.Trace.Head.QueueAfter)
+        Assert.Equal<JoyValue list>([], rt.Trace.Head.StackBefore)
+        Assert.Equal<JoyValue list>([Int 1], rt.Trace.Head.StackAfter)
+        Assert.Equal<JoyValue list>([Int 1; Symbol "dup"], rt.Trace.Head.QueueBefore)
+        Assert.Equal<JoyValue list>([Symbol "dup"], rt.Trace.Head.QueueAfter)
     expectOk rt1 test1
     
     let rt2 = rt1 |> Result.bind step
     let test2 rt =
         Assert.Equal(Symbol "dup", rt.Trace.Head.Instruction)
-        Assert.StrictEqual([Int 1], rt.Trace.Head.StackBefore)
-        Assert.StrictEqual([Int 1; Int 1], rt.Trace.Head.StackAfter)
-        Assert.StrictEqual([Symbol "dup"], rt.Trace.Head.QueueBefore)
-        Assert.StrictEqual([], rt.Trace.Head.QueueAfter)
+        Assert.Equal<JoyValue list>([Int 1], rt.Trace.Head.StackBefore)
+        Assert.Equal<JoyValue list>([Int 1; Int 1], rt.Trace.Head.StackAfter)
+        Assert.Equal<JoyValue list>([Symbol "dup"], rt.Trace.Head.QueueBefore)
+        Assert.Equal<JoyValue list>([], rt.Trace.Head.QueueAfter)
     expectOk rt2 test2
 
 [<Fact>]
@@ -178,10 +178,10 @@ let ``trace entry correctness for user-defined words`` () =
     let test rt = 
         Assert.True(rt.Trace.Head.Resolution.IsSome)
         Assert.Equal(Symbol "foo", rt.Trace.Head.Instruction)
-        Assert.StrictEqual([Symbol "foo"], rt.Trace.Head.QueueBefore)
-        Assert.StrictEqual([Int 1; Int 2], rt.Trace.Head.QueueAfter)
-        Assert.StrictEqual([], rt.Trace.Head.StackBefore)
-        Assert.StrictEqual([], rt.Trace.Head.StackAfter)
+        Assert.Equal<JoyValue list>([Symbol "foo"], rt.Trace.Head.QueueBefore)
+        Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Trace.Head.QueueAfter)
+        Assert.Equal<JoyValue list>([], rt.Trace.Head.StackBefore)
+        Assert.Equal<JoyValue list>([], rt.Trace.Head.StackAfter)
     expectOk rt1 test
     
 [<Fact>]
@@ -214,7 +214,7 @@ let ``quote expansion chaining`` () =
     let rt0 = { mkRuntime [Symbol "foo"] with Env = env }
     let rt1 = runUntilHalt rt0
     let test rt =
-        Assert.StrictEqual([Int 2; Int 2; Int 1], rt.Stack)
+        Assert.Equal<JoyValue list>([Int 2; Int 2; Int 1], rt.Stack)
     expectOk rt1 test
     
 [<Fact>]
@@ -223,11 +223,11 @@ let ``swap stack discipline invariants`` () =
     let p1 = [Int 1; Symbol "swap"]
     
     let test0 rt =
-        Assert.StrictEqual([Int 1; Int 2], rt.Stack)
+        Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack)
     let test1 (err, traceEntry, rt) =
         Assert.Equal(StackUnderflow, err)
         Assert.Equal(Symbol "swap", traceEntry.Instruction)
-        Assert.StrictEqual([Int 1], rt.Stack)
+        Assert.Equal([Int 1], rt.Stack)
         
     mkRuntime p0
     |> runUntilHalt
