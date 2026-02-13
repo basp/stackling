@@ -29,9 +29,10 @@ let ``int literals are pushed onto the stack`` () =
 
 [<Fact>]
 let ``dup should duplicate value on top of stack`` () =
-    let r0 = { defaultRuntime with Queue = [Int 1; Symbol "dup"] }
-    let r1 = r0 |> step |> Result.bind step
-    expectOk r1 (fun rt ->
+    let rt0 = { defaultRuntime with Queue = [Int 1; Symbol "dup"] }
+    // Execute using `step` as a sanity check.
+    let rt1 = rt0 |> step |> Result.bind step
+    expectOk rt1 (fun rt ->
         match rt.Stack with
         | x :: y :: _ ->
             Assert.Equal(Int 1, x)
@@ -41,8 +42,8 @@ let ``dup should duplicate value on top of stack`` () =
 [<Fact>]
 let ``literal only program`` () =
     let p = [Int 1; Int 2; Int 3]
-    let rt = { defaultRuntime with Queue = p }
-    expectOk (runUntilHalt rt) (fun rt ->
+    let rt0 = { defaultRuntime with Queue = p }
+    expectOk (runUntilHalt rt0) (fun rt ->
         match rt.Stack with
         | x :: y :: z :: _ ->
             Assert.Equal(Int 3, x)
@@ -53,8 +54,8 @@ let ``literal only program`` () =
 [<Fact>]
 let ``builtin only program`` () =
     let p = [Int 1; Symbol "dup"; Symbol "dup"]
-    let rt = { defaultRuntime with Queue = p }
-    expectOk (runUntilHalt rt) (fun rt ->
+    let rt0 = { defaultRuntime with Queue = p }
+    expectOk (runUntilHalt rt0) (fun rt ->
         match rt.Stack with
         | x :: y :: z :: _ ->
             Assert.Equal(Int 1, x)
@@ -66,8 +67,8 @@ let ``builtin only program`` () =
 let ``user-defined word expansion`` () =
     let foo = Defined [Int 1; Int 2; Symbol "dup"]
     let env = defaultEnv |> Map.add "foo" foo
-    let rt = { defaultRuntime with Env = env; Queue = [Symbol "foo"] }
-    expectOk (runUntilHalt rt) (fun rt ->
+    let rt0 = { defaultRuntime with Env = env; Queue = [Symbol "foo"] }
+    expectOk (runUntilHalt rt0) (fun rt ->
          match rt.Stack with
          | x :: y :: z :: _ ->
              Assert.Equal(Int 2, x)
@@ -78,14 +79,37 @@ let ``user-defined word expansion`` () =
 [<Fact>]
 let ``error propagation`` () =
     let p = [Symbol "dup"]
-    let rt = { defaultRuntime with Queue = p }
-    expectError (runUntilHalt rt) (fun (err, traceEntry, _) ->
+    let rt0 = { defaultRuntime with Queue = p }
+    expectError (runUntilHalt rt0) (fun (err, traceEntry, _) ->
         Assert.Equal(Symbol "dup", traceEntry.Instruction)
         Assert.Equal(StackUnderflow, err))
       
 [<Fact>]
 let ``instruction is consumed on error`` () =
     let p = [Symbol "dup"]
-    let tr = { defaultRuntime with Queue = p }
-    expectError (runUntilHalt tr) (fun (_, _, rt) ->
+    let rt0 = { defaultRuntime with Queue = p }
+    expectError (runUntilHalt rt0) (fun (_, _, rt) ->
         Assert.Empty(rt.Queue))
+
+[<Fact>]
+let ``halt on empty queue`` () =
+    let p = []
+    let rt0 = { defaultRuntime with Queue = p }
+    expectOk (runUntilHalt rt0) (fun rt ->        
+        Assert.Empty(rt.Queue)
+        Assert.Empty(rt.Stack))
+    
+[<Fact>]
+let ``trace accumulation on success`` () =
+    let p = [Int 1; Symbol "dup"]
+    let rtA = { defaultRuntime with Queue = p }
+    let rtB = { defaultRuntime with Queue = p }
+    let rtA' = rtA |> step |> Result.bind step
+    let rtB' = runUntilHalt rtB
+    match rtA', rtB' with
+    | Ok rtA, Ok rtB ->
+        let va = Diagnostics.initRuntimeStateView rtA
+        let vb = Diagnostics.initRuntimeStateView rtB
+        Assert.Equal(va, vb)
+    | _ ->
+        Assert.Fail("Runtimes should be identical")
