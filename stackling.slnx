@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Stackling.Tests/Stackling.Tests.fsproj" />
+    <Project Path="src/Stackling/Stackling.fsproj" />
+  </Folder>
+</Solution>
