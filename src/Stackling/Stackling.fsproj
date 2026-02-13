@@ -11,6 +11,7 @@
     <Compile Include="Diagnostics.fs" />
     <Compile Include="Interpreter.fs" />
     <Compile Include="Program.fs" />
+    <None Include="Sandbox.fsx" />
   </ItemGroup>
 
 </Project>
