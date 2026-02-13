@@ -166,3 +166,65 @@ let ``trace entry correctness for builtins`` () =
         Assert.StrictEqual([Symbol "dup"], rt.Trace.Head.QueueBefore)
         Assert.StrictEqual([], rt.Trace.Head.QueueAfter)
     expectOk rt2 test2
+
+[<Fact>]
+let ``trace entry correctness for user-defined words`` () =
+    let env =
+        defaultEnv
+        |> Map.add "foo" (Defined [Int 1; Int 2])
+    let p = [Symbol "foo"]
+    let rt0 = { mkRuntime p with Env = env }
+    let rt1 = rt0 |> step
+    let test rt = 
+        Assert.True(rt.Trace.Head.Resolution.IsSome)
+        Assert.Equal(Symbol "foo", rt.Trace.Head.Instruction)
+        Assert.StrictEqual([Symbol "foo"], rt.Trace.Head.QueueBefore)
+        Assert.StrictEqual([Int 1; Int 2], rt.Trace.Head.QueueAfter)
+        Assert.StrictEqual([], rt.Trace.Head.StackBefore)
+        Assert.StrictEqual([], rt.Trace.Head.StackAfter)
+    expectOk rt1 test
+    
+[<Fact>]
+let ``idempotence of halting`` () =
+    let rt0 = defaultRuntime
+    let rt1 = runUntilHalt rt0
+    match rt1 with
+    | Ok rt ->
+        let rt2 = runUntilHalt rt
+        Assert.StrictEqual(rt1, rt2)
+    | _ -> Assert.Fail("Expected Ok")
+    
+[<Fact>]
+let ``quote expansion chaining`` () =
+    let foo = [Int 1; Symbol "bar"]
+    let bar = [Int 2; Symbol "dup"]
+    let env =
+        defaultEnv
+        |> Map.add "bar" (Defined bar)
+        |> Map.add "foo" (Defined foo)    
+    let rt0 = { mkRuntime foo with Env = env }
+    let rt1 = runUntilHalt rt0
+    let test rt =
+        Assert.StrictEqual([Int 2; Int 2; Int 1], rt.Stack)
+    expectOk rt1 test
+    
+[<Fact>]
+let ``swap stack discipline invariants`` () =
+    let p0 = [Int 1; Int 2; Symbol "swap"]
+    let p1 = [Int 1; Symbol "swap"]
+    
+    let test0 rt =
+        Assert.StrictEqual([Int 1; Int 2], rt.Stack)
+    let test1 (err, traceEntry, rt) =
+        Assert.Equal(StackUnderflow, err)
+        Assert.Equal(Symbol "swap", traceEntry.Instruction)
+        Assert.StrictEqual([Int 1], rt.Stack)
+        
+    mkRuntime p0
+    |> runUntilHalt
+    |> (fun x -> expectOk x test0)
+
+    mkRuntime p1
+    |> runUntilHalt
+    |> (fun x -> expectError x test1)
+    
