@@ -186,13 +186,22 @@ let ``trace entry correctness for user-defined words`` () =
     
 [<Fact>]
 let ``idempotence of halting`` () =
-    let rt0 = defaultRuntime
-    let rt1 = runUntilHalt rt0
-    match rt1 with
-    | Ok rt ->
-        let rt2 = runUntilHalt rt
-        Assert.StrictEqual(rt1, rt2)
-    | _ -> Assert.Fail("Expected Ok")
+    // Run once until halting.
+    let rt0 =
+        runUntilHalt defaultRuntime
+    // Run until halt and then re-use the same
+    // runtime state to run again. The results of
+    // running `rt0` and `rt1` should be identical.
+    let rt1 =
+        runUntilHalt defaultRuntime
+        |> Result.bind runUntilHalt
+    match rt0, rt1 with
+    | Ok a, Ok b ->
+        let va = Diagnostics.initRuntimeStateView a
+        let vb = Diagnostics.initRuntimeStateView b
+        Assert.Equal(va, vb)
+    | _ ->
+        Assert.Fail("Expected Ok")
     
 [<Fact>]
 let ``quote expansion chaining`` () =
@@ -202,7 +211,7 @@ let ``quote expansion chaining`` () =
         defaultEnv
         |> Map.add "bar" (Defined bar)
         |> Map.add "foo" (Defined foo)    
-    let rt0 = { mkRuntime foo with Env = env }
+    let rt0 = { mkRuntime [Symbol "foo"] with Env = env }
     let rt1 = runUntilHalt rt0
     let test rt =
         Assert.StrictEqual([Int 2; Int 2; Int 1], rt.Stack)
