@@ -42,20 +42,20 @@ let i rt =
     | [] ->
         Error StackUnderflow
         
-let private intBinOp _ op a b rt =
-    Ok { rt with Stack = Int (op a b) :: rt.Stack }
+let private intBinOp _ op a b rest rt =
+    Ok { rt with Stack = Int (op a b) :: rest }
 
-let private floatBinOp _ op a b rt =
-    Ok { rt with Stack = Float (op a b) :: rt.Stack }
+let private floatBinOp _ op a b rest rt =
+    Ok { rt with Stack = Float (op a b) :: rest }
 
 let private numericBinOp name intOp floatOp rt =
     match rt.Stack with
-    | Int b :: Int a :: _ ->
-        intBinOp name intOp a b rt
-    | Float b :: Float a :: _ ->
-        floatBinOp name floatOp a b rt
+    | Int b :: Int a :: rest ->
+        intBinOp name intOp a b rest rt
+    | Float b :: Float a :: rest ->
+        floatBinOp name floatOp a b rest rt
     | _ ->
-        let msg = sprintf "%s Cannot operate on non-numeric values" name
+        let msg = sprintf "%s expects same-type numeric values" name
         Error (TypeError msg)
 
 let add rt =
