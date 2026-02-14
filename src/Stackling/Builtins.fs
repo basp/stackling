@@ -2,6 +2,14 @@
 
 open Stackling.Runtime
 
+// type BinOp =
+//     | IntBinOp of (int -> int -> int)
+//     | FloatBinOp of (float -> float -> float)
+//     
+// type UnOp =
+//     | IntUnOp of (int -> int)
+//     | FloatUnOp of (float -> float)
+
 let dup rt : Result<Runtime, JoyError> =
     match rt.Stack with
     | x :: xs ->
@@ -34,10 +42,10 @@ let i rt =
     | [] ->
         Error StackUnderflow
         
-let private intBinOp name op a b rt =
+let private intBinOp _ op a b rt =
     Ok { rt with Stack = Int (op a b) :: rt.Stack }
 
-let private floatBinOp name op a b rt =
+let private floatBinOp _ op a b rt =
     Ok { rt with Stack = Float (op a b) :: rt.Stack }
 
 let private numericBinOp name intOp floatOp rt =
@@ -47,7 +55,8 @@ let private numericBinOp name intOp floatOp rt =
     | Float b :: Float a :: _ ->
         floatBinOp name floatOp a b rt
     | _ ->
-        Error (TypeError "Cannot operate on non-numeric values")        
+        let msg = sprintf "%s Cannot operate on non-numeric values" name
+        Error (TypeError msg)
 
 let add rt =
     numericBinOp "add" (+) (+) rt
@@ -67,16 +76,51 @@ let div rt =
     | _ ->
         numericBinOp "div" (/) (/) rt
         
+// let private builtins =
+//     Map.empty
+//     |> Map.add Dup dup
+//     |> Map.add Swap swap
+//     |> Map.add Pop pop
+//     |> Map.add I i
+//     |> Map.add Add add
+//     |> Map.add Sub sub
+//     |> Map.add Mul mul
+//     |> Map.add Div div
+    
 let private builtins =
     Map.empty
-    |> Map.add Dup dup
-    |> Map.add Swap swap
-    |> Map.add Pop pop
-    |> Map.add I i
-    |> Map.add Add add
-    |> Map.add Sub sub
-    |> Map.add Mul mul
-    |> Map.add Div div
+    |> Map.add Dup {
+        Impl = dup
+        Effect = ([TAny], [TAny; TAny])
+    }
+    |> Map.add Swap {
+        Impl = swap
+        Effect = ([TAny; TAny], [TAny; TAny])
+    }
+    |> Map.add Pop {
+        Impl = pop
+        Effect = ([TAny], [])
+    }
+    |> Map.add I {
+        Impl = i
+        Effect = ([TQuotation], [])
+    }
+    |> Map.add Add {
+        Impl = add
+        Effect = ([TNumeric; TNumeric], [TNumeric])
+    }
+    |> Map.add Sub {
+        Impl = sub
+        Effect = ([TNumeric; TNumeric], [TNumeric])
+    }
+    |> Map.add Mul {
+        Impl = mul
+        Effect = ([TNumeric; TNumeric], [TNumeric])
+    }
+    |> Map.add Div {
+        Impl = div
+        Effect = ([TNumeric; TNumeric], [TNumeric])
+    }
     
 let tryFindBuiltin sym =
     builtins |> Map.tryFind sym

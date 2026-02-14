@@ -3,6 +3,8 @@
 open Stackling.Runtime
 open Stackling.Builtins
 
+let private doTypeCheck = true
+
 // On failure, the runtime returned in the error case reflects the state
 // after consuming the failing instruction, but before applying any effects.
 // The failing instruction is recorded only in the returned TraceEntry.
@@ -17,7 +19,7 @@ let step (rt : Runtime) : Result<Runtime, JoyError * TraceEntry * Runtime> =
 
         // Base runtime for the next step.        
         let baseRt = { rt with Queue = remainingQueue }
-
+        
         // Execute instruction.
         let resultAfter =
             match instr with
@@ -39,7 +41,7 @@ let step (rt : Runtime) : Result<Runtime, JoyError * TraceEntry * Runtime> =
                     // Possibly clean up the code using active patterns.
                     match tryFindBuiltin sym with
                     | Some bi ->
-                        bi baseRt
+                        bi.Impl baseRt
                         |> Result.map (fun newRt ->
                             (newRt, Some (Builtin sym)))
                     | None ->
