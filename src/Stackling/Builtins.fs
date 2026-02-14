@@ -76,17 +76,6 @@ let div rt =
     | _ ->
         numericBinOp "div" (/) (/) rt
         
-// let private builtins =
-//     Map.empty
-//     |> Map.add Dup dup
-//     |> Map.add Swap swap
-//     |> Map.add Pop pop
-//     |> Map.add I i
-//     |> Map.add Add add
-//     |> Map.add Sub sub
-//     |> Map.add Mul mul
-//     |> Map.add Div div
-    
 let private builtins =
     Map.empty
     |> Map.add Dup {
