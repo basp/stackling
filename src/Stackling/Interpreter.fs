@@ -22,11 +22,13 @@ let step (rt : Runtime) : Result<Runtime, JoyError * TraceEntry * Runtime> =
         let resultAfter =
             match instr with
             | Int _
+            | Float _
             | Bool _
             | String _
             | Quotation _ ->
-                // Pushing a literal never fails.
-                Ok ({ baseRt with Stack = instr :: stackBefore }, None)
+                // Literals never fail - just push them onto the stack.
+                let newRt = { baseRt with Stack = instr :: stackBefore }
+                Ok (newRt, None)
             | Symbol name ->
                 // Symbol lookup.
                 match rt.Env.TryFind name with

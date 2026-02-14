@@ -272,18 +272,40 @@ let ``i inside a user-defined word`` () =
     let rt0 = { mkRuntime [Symbol "foo"] with Env = env }
     expectOk (runUntilHalt rt0) (fun rt ->
         Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack))
-    
+
+// This test demonstrates how triple‑nested quotations expand under
+// repeated i execution. The walkthrough below shows the exact queue
+// and stack evolution.
+//
+// Nested quotations get expanded onto the queue:
+// queue => [ [ [1 2 swap] i ] i swap ] i swap
+//
+// > quotation [ [ [1 2 swap ] i ] i swap ] gets expanded:
+// queue => [ [1 2 swap] i ] i swap swap
+//                           ^
+// > quotation [ [1 2 swap ] i ] gets expanded:
+// queue => [1 2 swap] i swap swap
+//                     ^
+// > quotation [1 2 swap] gets expanded:
+// queue => 1 2 swap swap swap
+//
+// Full runtime trace:
+//
+//                       stack : queue
+//                          [] : [ [ [ [1 2 swap] i ] i swap ] i swap]
+// [ [ [1 2 swap] i ] i swap ] : [i swap]
+//                          [] : [ [ [1 2 swap] i ] i swap swap]
+//            [ [1 2 swap] i ] : [i swap swap]
+//                          [] : [ [1 2 swap] i swap swap]
+//                  [1 2 swap] : [i swap swap swap]
+//                          [] : [1 2 swap swap swap]
+//                         [1] : [2 swap swap swap]
+//                      [2; 1] : [swap swap swap]
+//                      [1; 2] : [swap swap]
+//                      [2; 1] : [swap]
+//                      [1; 2] : [] 
 [<Fact>]
 let ``triple-nested quotations`` () =
-    // [ [ [1 2 swap] i ] i swap ] i swap
-    //                             ^
-    // [ [1 2 swap] i ] i swap swap
-    //                  ^
-    // [1 2 swap] i swap swap
-    //            ^
-    // 1 2 swap swap swap
-    //
-    // => [1; 2]
     let p = [
         Quotation [
             Quotation [

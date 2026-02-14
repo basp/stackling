@@ -34,12 +34,36 @@ let i rt =
     | [] ->
         Error StackUnderflow
         
+let private intBinOp name op rt =
+    match rt.Stack with
+    | Int b :: Int a :: _ ->
+        Ok { rt with Stack = Int (op a b) :: rt.Stack }
+    | _ ->
+        Error (TypeError (sprintf "%s expects two integers" name))
+
+let add rt = intBinOp "add" (+) rt
+
+let sub rt = intBinOp "sub" (-) rt
+
+let mul rt = intBinOp "mul" (*) rt
+
+let div rt =
+    match rt.Stack with
+    | Int 0 :: _ :: _ ->
+        Error DivisionByZero
+    | _ ->
+        intBinOp "div" (/) rt
+        
 let private builtins =
     Map.empty
     |> Map.add Dup dup
     |> Map.add Swap swap
     |> Map.add Pop pop
     |> Map.add I i
+    |> Map.add Add add
+    |> Map.add Sub sub
+    |> Map.add Mul mul
+    |> Map.add Div div
     
 let tryFindBuiltin sym =
     builtins |> Map.tryFind sym

@@ -3,6 +3,7 @@
 type JoyValue =
     | Bool of bool
     | Int of int
+    | Float of float
     | String of string
     | Symbol of string
     | Quotation of JoyValue list
@@ -11,6 +12,7 @@ type JoyValue =
         match x with
         | Bool b -> b.ToString()
         | Int i -> i.ToString()
+        | Float f -> f.ToString()
         | String s -> s
         | Symbol name -> name
         | Quotation q ->
@@ -26,12 +28,18 @@ and Builtin =
     | Swap
     | Pop
     | I
+    | Add
+    | Sub
+    | Div
+    | Mul
 
 and JoyError =
     | StackUnderflow
     | TypeMismatch of expected: string * actual: JoyValue
     | UndefinedSymbol of string
     | InvalidQuotation of JoyValue
+    | DivisionByZero
+    | TypeError of string
     
     override x.ToString() =
         match x with
@@ -43,6 +51,11 @@ and JoyError =
             $"Undefined symbol: %s{name}"
         | InvalidQuotation q ->
             $"Invalid quotation: %A{q}"
+        | DivisionByZero ->
+            "Division by zero"
+        | TypeError msg ->
+            msg
+            
 
 and Runtime = {
     Queue: JoyValue list
