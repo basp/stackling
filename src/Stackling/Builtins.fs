@@ -34,25 +34,38 @@ let i rt =
     | [] ->
         Error StackUnderflow
         
-let private intBinOp name op rt =
+let private intBinOp name op a b rt =
+    Ok { rt with Stack = Int (op a b) :: rt.Stack }
+
+let private floatBinOp name op a b rt =
+    Ok { rt with Stack = Float (op a b) :: rt.Stack }
+
+let private numericBinOp name intOp floatOp rt =
     match rt.Stack with
     | Int b :: Int a :: _ ->
-        Ok { rt with Stack = Int (op a b) :: rt.Stack }
+        intBinOp name intOp a b rt
+    | Float b :: Float a :: _ ->
+        floatBinOp name floatOp a b rt
     | _ ->
-        Error (TypeError (sprintf "%s expects two integers" name))
+        Error (TypeError "Cannot operate on non-numeric values")        
 
-let add rt = intBinOp "add" (+) rt
+let add rt =
+    numericBinOp "add" (+) (+) rt
 
-let sub rt = intBinOp "sub" (-) rt
+let sub rt =
+    numericBinOp "sub" (-) (-) rt
 
-let mul rt = intBinOp "mul" (*) rt
+let mul rt =
+    numericBinOp "mul" (*) (*) rt
 
 let div rt =
     match rt.Stack with
     | Int 0 :: _ :: _ ->
         Error DivisionByZero
+    | Float 0.0 :: _ :: _ ->
+        Error DivisionByZero
     | _ ->
-        intBinOp "div" (/) rt
+        numericBinOp "div" (/) (/) rt
         
 let private builtins =
     Map.empty

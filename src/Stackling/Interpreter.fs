@@ -96,6 +96,10 @@ let defaultEnv = Map.ofList [
     "swap", Builtin Swap
     "pop", Builtin Pop
     "i", Builtin I
+    "add" , Builtin Add
+    "sub", Builtin Sub
+    "mul", Builtin Mul
+    "div", Builtin Div
 ]
 
 let defaultRuntime =

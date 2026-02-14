@@ -54,8 +54,7 @@ and JoyError =
         | DivisionByZero ->
             "Division by zero"
         | TypeError msg ->
-            msg
-            
+            msg            
 
 and Runtime = {
     Queue: JoyValue list

@@ -345,3 +345,31 @@ let ``i inside a quotation inside a user-defined word`` () =
     let rt0 = { mkRuntime p with Env = env }
     expectOk (runUntilHalt rt0) (fun rt ->
         Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack))
+    
+[<Fact>]
+let ``add two integer values`` () =
+    let p = [Int 2; Int 3; Symbol "add"]
+    let rt0 = mkRuntime p
+    expectOk (runUntilHalt rt0) (fun rt ->        
+        Assert.Equal(Int 5, rt.Stack.Head))
+
+[<Fact>]
+let ``add two float values`` () =
+    let p = [Float 2.0; Float 3.0; Symbol "add"]
+    let rt0 = mkRuntime p
+    expectOk (runUntilHalt rt0) (fun rt ->
+        Assert.Equal(Float 5.0, rt.Stack.Head))
+    
+[<Fact>]
+let ``subtract two integer values`` () =
+    let p = [Int 2; Int 3; Symbol "sub"]
+    let rt0 = mkRuntime p
+    expectOk (runUntilHalt rt0) (fun rt ->
+        Assert.Equal(Int -1, rt.Stack.Head))
+
+[<Fact>]    
+let ``subtract two float values`` () =
+    let p = [Float 2.0; Float 3.0; Symbol "sub"]
+    let rt0 = mkRuntime p
+    expectOk (runUntilHalt rt0) (fun rt ->
+        Assert.Equal(Float -1.0, rt.Stack.Head))
