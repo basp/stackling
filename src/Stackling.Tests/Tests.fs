@@ -222,18 +222,104 @@ let ``swap stack discipline invariants`` () =
     let p0 = [Int 1; Int 2; Symbol "swap"]
     let p1 = [Int 1; Symbol "swap"]
     
-    let test0 rt =
+    let testOk rt =
         Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack)
-    let test1 (err, traceEntry, rt) =
+    let testError (err, traceEntry, rt) =
         Assert.Equal(StackUnderflow, err)
         Assert.Equal(Symbol "swap", traceEntry.Instruction)
         Assert.Equal<JoyValue list>([Int 1], rt.Stack)
         
     mkRuntime p0
     |> runUntilHalt
-    |> (fun x -> expectOk x test0)
+    |> (fun x -> expectOk x testOk)
 
     mkRuntime p1
     |> runUntilHalt
-    |> (fun x -> expectError x test1)
+    |> (fun x -> expectError x testError)
     
+[<Fact>]
+let ``the i combinator`` () =
+    let p = [Quotation [Int 1; Int 2; Symbol "swap"]; Symbol "i"]
+    let rt0 = mkRuntime p
+    expectOk (runUntilHalt rt0) (fun rt ->
+        Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack))
+    
+[<Fact>]
+let ``nested quotations`` () =
+    let p = [
+        Quotation [
+            Quotation [Int 1; Int 2; Symbol "swap"]
+            Symbol "i" ]
+        Symbol "i" ]    
+    let rt0 = mkRuntime p
+    expectOk (runUntilHalt rt0) (fun rt ->
+        Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack))
+    
+[<Fact>]
+let ``i does not evaluate non-quotation values`` () =
+    let p = [Int 1; Symbol "i"]
+    let rt0 = mkRuntime p
+    let testError (err, _, _) =
+        match err with
+        | InvalidQuotation _ -> Assert.True(true);
+        | _ -> Assert.Fail("Expected InvalidQuotation")
+    expectError (runUntilHalt rt0) testError
+
+[<Fact>]
+let ``i inside a user-defined word`` () =
+    let foo = Defined [Quotation [Int 1; Int 2; Symbol "swap"]; Symbol "i"]
+    let env = defaultEnv |> Map.add "foo" foo
+    let rt0 = { mkRuntime [Symbol "foo"] with Env = env }
+    expectOk (runUntilHalt rt0) (fun rt ->
+        Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack))
+    
+[<Fact>]
+let ``triple-nested quotations`` () =
+    // [ [ [1 2 swap] i ] i swap ] i swap
+    //                             ^
+    // [ [1 2 swap] i ] i swap swap
+    //                  ^
+    // [1 2 swap] i swap swap
+    //            ^
+    // 1 2 swap swap swap
+    //
+    // => [1; 2]
+    let p = [
+        Quotation [
+            Quotation [
+                Quotation [Int 1; Int 2; Symbol "swap"]
+                Symbol "i"
+            ]
+            Symbol "i"
+            Symbol "swap"
+        ]
+        Symbol "i"
+        Symbol "swap" ]
+    let rt0 = mkRuntime p
+    expectOk (runUntilHalt rt0) (fun rt ->
+        Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack))
+    
+[<Fact>]
+let ``i applied to empty quotation`` () =
+    let p = [Quotation []; Symbol "i"]
+    let rt0 = mkRuntime p
+    expectOk (runUntilHalt rt0) (fun rt -> Assert.Empty(rt.Stack))
+    
+[<Fact>]
+let ``i inside a quotation inside a user-defined word`` () =
+    let foo = [
+        Quotation [
+            Quotation [
+                Quotation [Int 1; Int 2; Symbol "swap"]
+                Symbol "i"
+            ]
+            Symbol "i"
+            Symbol "swap"
+        ]
+        Symbol "i"
+        Symbol "swap" ]
+    let p = [Quotation [Symbol "foo"]; Symbol "i"]
+    let env = defaultEnv |> Map.add "foo" (Defined foo)
+    let rt0 = { mkRuntime p with Env = env }
+    expectOk (runUntilHalt rt0) (fun rt ->
+        Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack))
