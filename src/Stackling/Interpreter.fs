@@ -62,7 +62,7 @@ let step (rt : Runtime) : Result<Runtime, JoyError * TraceEntry * Runtime> =
                         
                 // User-defined words expand into the queue.
                 | Some (Defined def) ->
-                    let newRt = { baseRt with Queue = def @ baseRt.Queue }
+                    let newRt = { baseRt with Queue = def.Body @ baseRt.Queue }
                     Ok (newRt, Some (Defined def))
 
         match resultAfter with

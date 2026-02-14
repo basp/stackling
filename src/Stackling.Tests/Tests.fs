@@ -21,6 +21,9 @@ let expectError
 let mkRuntime p =
     { defaultRuntime with Queue = p }
 
+let mkUserWord body effect =
+    { Body = body; Effect = effect }
+
 [<Fact>]
 let ``int literals are pushed onto the stack`` () =
     let p = [Int 1]
@@ -73,8 +76,10 @@ let ``builtin only program`` () =
     
 [<Fact>]
 let ``user-defined word expansion`` () =
-    let foo = Defined [Int 1; Int 2; Symbol "dup"]
-    let env = defaultEnv |> Map.add "foo" foo
+    let foo = mkUserWord [Int 1; Int 2; Symbol "dup"] ([], [])
+    let env =
+        defaultEnv
+        |> Map.add "foo" (Defined foo)
     let rt0 = { mkRuntime [Symbol "foo"] with Env = env }
     let test rt = 
          match rt.Stack with
@@ -169,9 +174,10 @@ let ``trace entry correctness for builtins`` () =
 
 [<Fact>]
 let ``trace entry correctness for user-defined words`` () =
+    let foo = mkUserWord [Int 1; Int 2] ([], [])
     let env =
         defaultEnv
-        |> Map.add "foo" (Defined [Int 1; Int 2])
+        |> Map.add "foo" (Defined foo)
     let p = [Symbol "foo"]
     let rt0 = { mkRuntime p with Env = env }
     let rt1 = rt0 |> step
@@ -205,8 +211,8 @@ let ``idempotence of halting`` () =
     
 [<Fact>]
 let ``quote expansion chaining`` () =
-    let foo = [Int 1; Symbol "bar"]
-    let bar = [Int 2; Symbol "dup"]
+    let foo = mkUserWord [Int 1; Symbol "bar"] ([], [])
+    let bar = mkUserWord [Int 2; Symbol "dup"] ([], [])
     let env =
         defaultEnv
         |> Map.add "bar" (Defined bar)
@@ -267,8 +273,11 @@ let ``i does not evaluate non-quotation values`` () =
 
 [<Fact>]
 let ``i inside a user-defined word`` () =
-    let foo = Defined [Quotation [Int 1; Int 2; Symbol "swap"]; Symbol "i"]
-    let env = defaultEnv |> Map.add "foo" foo
+    let foo =
+        mkUserWord
+            [Quotation [Int 1; Int 2; Symbol "swap"]; Symbol "i"]
+            ([], [])
+    let env = defaultEnv |> Map.add "foo" (Defined foo)
     let rt0 = { mkRuntime [Symbol "foo"] with Env = env }
     expectOk (runUntilHalt rt0) (fun rt ->
         Assert.Equal<JoyValue list>([Int 1; Int 2], rt.Stack))
@@ -329,7 +338,7 @@ let ``i applied to empty quotation`` () =
     
 [<Fact>]
 let ``i inside a quotation inside a user-defined word`` () =
-    let foo = [
+    let foo = mkUserWord [
         Quotation [
             Quotation [
                 Quotation [Int 1; Int 2; Symbol "swap"]
@@ -339,7 +348,7 @@ let ``i inside a quotation inside a user-defined word`` () =
             Symbol "swap"
         ]
         Symbol "i"
-        Symbol "swap" ]
+        Symbol "swap" ] ([], [])
     let p = [Quotation [Symbol "foo"]; Symbol "i"]
     let env = defaultEnv |> Map.add "foo" (Defined foo)
     let rt0 = { mkRuntime p with Env = env }

@@ -21,7 +21,7 @@ type JoyValue =
 
 and JoyDefinition =
     | Builtin of Builtin
-    | Defined of JoyValue list
+    | Defined of UserDefinition
     
 and Builtin =
     | Dup
@@ -70,7 +70,7 @@ and TraceEntry = {
     QueueAfter: JoyValue list
     Resolution: JoyDefinition option }
 
-type JoyType =
+and JoyType =
     | TBool
     | TInt
     | TFloat
@@ -80,10 +80,15 @@ type JoyType =
     | TNumeric
     | TAny
 
-type StackEffect = JoyType list * JoyType list
+and StackEffect = JoyType list * JoyType list
     
-type BuiltinInfo = {
+and BuiltinInfo = {
     Impl: Runtime -> Result<Runtime, JoyError>
+    Effect: StackEffect
+}
+ 
+and UserDefinition = {
+    Body: JoyValue list
     Effect: StackEffect
 }
     
