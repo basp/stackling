@@ -21,7 +21,11 @@ and JoyDefinition =
     | Builtin of Builtin
     | Defined of JoyValue list
     
-and Builtin = Runtime -> Result<Runtime, JoyError>
+and Builtin =
+    | Dup
+    | Swap
+    | Pop
+    | I
 
 and JoyError =
     | StackUnderflow

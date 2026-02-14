@@ -33,3 +33,13 @@ let i rt =
         Error (InvalidQuotation x)
     | [] ->
         Error StackUnderflow
+        
+let private builtins =
+    Map.empty
+    |> Map.add Dup dup
+    |> Map.add Swap swap
+    |> Map.add Pop pop
+    |> Map.add I i
+    
+let tryFindBuiltin sym =
+    builtins |> Map.tryFind sym

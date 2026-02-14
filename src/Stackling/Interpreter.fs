@@ -32,11 +32,16 @@ let step (rt : Runtime) : Result<Runtime, JoyError * TraceEntry * Runtime> =
                 match rt.Env.TryFind name with
                 | None ->
                     Error (UndefinedSymbol name)
-                // Builtins are executed immediately.
-                | Some (Builtin bi) ->
-                    bi baseRt
-                    |> Result.map (fun newRt ->
-                        (newRt, Some (Builtin bi)))
+                | Some (Builtin sym) ->
+                    // Some extra indirection here, but it's worth it.
+                    // Possibly clean up the code using active patterns.
+                    match tryFindBuiltin sym with
+                    | Some bi ->
+                        bi baseRt
+                        |> Result.map (fun newRt ->
+                            (newRt, Some (Builtin sym)))
+                    | None ->
+                        Error (UndefinedSymbol (sym.ToString()))
                 // User-defined words expand into the queue.
                 | Some (Defined def) ->
                     let newRt = { baseRt with Queue = def @ baseRt.Queue }
@@ -85,10 +90,10 @@ let rec runUntilHalt (rt: Runtime) =
         | err -> err        
 
 let defaultEnv = Map.ofList [
-    "dup", Builtin dup
-    "swap", Builtin swap
-    "pop", Builtin pop
-    "i", Builtin i
+    "dup", Builtin Dup
+    "swap", Builtin Swap
+    "pop", Builtin Pop
+    "i", Builtin I
 ]
 
 let defaultRuntime =
