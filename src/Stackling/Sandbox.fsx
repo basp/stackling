@@ -7,24 +7,37 @@ open Stackling.Runtime
 open Stackling.Interpreter
 open Stackling.Diagnostics
 
-let p = [Symbol "dup"; Int 2]
-let rt = { defaultRuntime with Queue = p }
+// let p = [Symbol "dup"; Int 2]
+// let rt = { defaultRuntime with Queue = p }
+//
+// let x =
+//     step rt
+//     |> Result.bind step
+//     |> Result.bind step
+//     |> Result.map initRuntimeStateView
+//
+// let y =
+//     runUntilHalt rt
+//     |> Result.map initRuntimeStateView
+//
+// let testOk =
+//     match x, y with
+//     | Ok x, Ok y ->
+//         x = y
+//     | Error (x, _, _), Error (y, _, _) ->
+//         x = y
+//     | _ -> false
+    
+let div2by3i = [ Int 2; Int 3; Symbol "div" ]
+let mutable rt = { defaultRuntime with Queue = div2by3i }
+match runUntilHalt rt with
+| Ok x -> printfn "%A" x
+| Error (x, _, _) -> printfn "%A" x
 
-let x =
-    step rt
-    |> Result.bind step
-    |> Result.bind step
-    |> Result.map initRuntimeStateView
+let div2by3f = [ Float 2.0; Float 3.0; Symbol "div" ]
+rt <- { defaultRuntime with Queue = div2by3f }
+match runUntilHalt rt with
+| Ok x -> printfn "%A" x
+| Error (x, _, _) -> printfn "%A" x
 
-let y =
-    runUntilHalt rt
-    |> Result.map initRuntimeStateView
-
-let testOk =
-    match x, y with
-    | Ok x, Ok y ->
-        x = y
-    | Error (x, _, _), Error (y, _, _) ->
-        x = y
-    | _ -> false
     

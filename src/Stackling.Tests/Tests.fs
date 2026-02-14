@@ -261,7 +261,7 @@ let ``i does not evaluate non-quotation values`` () =
     let rt0 = mkRuntime p
     let testError (err, _, _) =
         match err with
-        | InvalidQuotation _ -> Assert.True(true);
+        | TypeError _ -> Assert.True(true);
         | _ -> Assert.Fail("Expected InvalidQuotation")
     expectError (runUntilHalt rt0) testError
 

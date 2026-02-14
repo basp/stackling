@@ -3,7 +3,7 @@
 open Stackling.Runtime
 open Stackling.Builtins
 
-let private doTypeCheck = true
+let mutable enableTypeChecking = true
 
 // On failure, the runtime returned in the error case reflects the state
 // after consuming the failing instruction, but before applying any effects.
@@ -17,9 +17,13 @@ let step (rt : Runtime) : Result<Runtime, JoyError * TraceEntry * Runtime> =
         let stackBefore = rt.Stack
         let queueBefore = rt.Queue
 
-        // Base runtime for the next step.        
+        // Base runtime for the next step.
+        //
+        // Note:
+        // * `rt` is the runtime before the next instruction is consumed.
+        // * `baseRt` is the runtime after the instruction was popped.         
         let baseRt = { rt with Queue = remainingQueue }
-        
+
         // Execute instruction.
         let resultAfter =
             match instr with
@@ -38,14 +42,24 @@ let step (rt : Runtime) : Result<Runtime, JoyError * TraceEntry * Runtime> =
                     Error (UndefinedSymbol name)
                 | Some (Builtin sym) ->
                     // Some extra indirection here, but it's worth it.
-                    // Possibly clean up the code using active patterns.
                     match tryFindBuiltin sym with
-                    | Some bi ->
-                        bi.Impl baseRt
-                        |> Result.map (fun newRt ->
-                            (newRt, Some (Builtin sym)))
+                    | Some info ->
+                        let runImpl () =
+                            info.Impl baseRt
+                            |> Result.map (fun newRt ->
+                                (newRt, Some (Builtin sym)))                                                        
+                        
+                        match enableTypeChecking with
+                        | true ->
+                            match checkStackEffect rt info.Effect with
+                            | Ok () ->
+                                runImpl ()
+                            | Error err ->
+                                Error err
+                        | _ -> runImpl ()                            
                     | None ->
                         Error (UndefinedSymbol (sym.ToString()))
+                        
                 // User-defined words expand into the queue.
                 | Some (Defined def) ->
                     let newRt = { baseRt with Queue = def @ baseRt.Queue }
